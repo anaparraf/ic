@@ -1,0 +1,26 @@
+---
+title: "PIBIC - Detecção e avaliação de viés de aprendizado de máquina utilizando
+  o Censo Demográfico"
+author: "Ana Beatriz Parra Ferreira"
+date: "2024-08-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, cache.lazy = FALSE)
+setwd("C:/Users/anapa/Iniciação científica/metodologia")
+```
+
+```{r bibliotecas}
+# install.packages("censobr")  #instalar biblioteca do censo
+library(censobr)
+
+```
+
+
+## Apêndice
+
+```{r dicionario - dados, }
+data_dictionary(year = 2010, dataset = "population")
+```
+
