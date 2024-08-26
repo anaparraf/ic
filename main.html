@@ -372,10 +372,16 @@ a biblioteca, é possível baixar e trabalhar com informações detalhadas
 sobre a população e os domicílios do Brasil, coletadas pelo IBGE.</p>
 <p>Para a pesquisa, o ano utilizado será o de 2010. As variáveis de
 interesse e seus códigos são:</p>
-<p>code_muni: código do município abbrev_state: estado V0002: codigo
-municipio V0601: sexo V6036: idade V0606: cor ou raça V6400: nível de
-instrução V6525: rendimento em todos os trabalhos V6930: posição na
-ocupação e categoria do emprego no trabalho principal</p>
+<p>code_muni: código do município</p>
+<p>abbrev_state: estado</p>
+<p>V0002: codigo municipio</p>
+<p>V0601: sexo</p>
+<p>V6036: idade</p>
+<p>V0606: cor ou raça</p>
+<p>V6400: nível de instrução</p>
+<p>V6525: rendimento em todos os trabalhos</p>
+<p>V6930: posição na ocupação e categoria do</p>
+<p>emprego no trabalho principal</p>
 <pre class="r"><code>#definindo variáveis
 colunas = c(&#39;code_muni&#39;,&#39;abbrev_state&#39;, &#39;V0002&#39;, &#39;V0601&#39;, &#39;V6036&#39;, &#39;V0606&#39;,&#39;V6400&#39;,&#39;V6525&#39;,&#39;V6930&#39;)
 
@@ -386,36 +392,52 @@ pop &lt;- read_population(
   as_data_frame = TRUE, # return an Arrow DataSet se FALSE, data.frame se TRUE
   showProgress = TRUE,  # show download progress bar
   cache = TRUE       # cache data for faster access later
-  )</code></pre>
-<p>Renomeando as variáveis e filtrando valores não nulos de rendimento
-total</p>
-<pre class="r"><code>dados &lt;- pop |&gt; 
-  rename(sexo = V0002, idade = V6036, cor_raca = V0606, nivel_instrucao = V6400, 
-         rendimento = V6525, ocupacao_emprego = V6930) |&gt; 
-  filter(rendimento != is.na(rendimento))
+  )
 
-head(pop)</code></pre>
-<pre><code>##   code_muni abbrev_state V0002     V0601 V6036  V0606
-## 1   1100015           RO 00015 Masculino    22  Parda
-## 2   1100015           RO 00015  Feminino    17  Parda
-## 3   1100015           RO 00015 Masculino    38 Branca
-## 4   1100015           RO 00015  Feminino    44 Branca
-## 5   1100015           RO 00015 Masculino    11  Parda
-## 6   1100015           RO 00015 Masculino    16  Parda
-##                                     V6400 V6525
-## 1  Sem instrução e fundamental incompleto  1000
-## 2  Sem instrução e fundamental incompleto    NA
-## 3 Fundamental completo e médio incompleto  1800
-## 4  Sem instrução e fundamental incompleto   250
-## 5  Sem instrução e fundamental incompleto    NA
-## 6  Sem instrução e fundamental incompleto    NA
-##                                          V6930
-## 1 Empregados com carteira de trabalho assinada
-## 2                                         &lt;NA&gt;
-## 3                                Conta própria
-## 4 Empregados sem carteira de trabalho assinada
-## 5                                         &lt;NA&gt;
-## 6                                         &lt;NA&gt;</code></pre>
+# 20635472 obs</code></pre>
+<p>Renomeando e filtrando apenas as observações com valores ausentes na
+variável de interesse principal, “rendimento”</p>
+<pre class="r"><code>pop |&gt;
+  rename(rendimento = V6525) |&gt;
+  filter(!is.na(rendimento))
+
+ # 9.151.107 observações</code></pre>
+<p>Renomeando e removendo todas as observações que continham qualquer
+valor ausente em qualquer uma das variáveis</p>
+<pre class="r"><code>dados &lt;- pop |&gt; 
+  rename(code_muni_censo = V0002, sexo = V0601, idade = V6036, cor_raca = V0606, nivel_instrucao = V6400, 
+         rendimento = V6525, ocupacao_emprego = V6930) |&gt; 
+  drop_na() |&gt; 
+  as_tibble()
+
+ # 9.116.993 observações
+
+head(dados)</code></pre>
+<pre><code>## # A tibble: 6 × 9
+##   code_muni abbrev_state code_muni_censo sexo     idade cor_raca nivel_instrucao
+##       &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;           &lt;chr&gt;    &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;          
+## 1   1100015 RO           00015           Masculi…    22 Parda    Sem instrução …
+## 2   1100015 RO           00015           Masculi…    38 Branca   Fundamental co…
+## 3   1100015 RO           00015           Feminino    44 Branca   Sem instrução …
+## 4   1100015 RO           00015           Feminino    26 Parda    Médio completo…
+## 5   1100015 RO           00015           Masculi…    54 Parda    Sem instrução …
+## 6   1100015 RO           00015           Masculi…    28 Parda    Sem instrução …
+## # ℹ 2 more variables: rendimento &lt;dbl&gt;, ocupacao_emprego &lt;chr&gt;</code></pre>
+<p>Dois conjuntos de dados foram gerados a partir do dataset original: o
+primeiro foi criado aplicando um filtro que removeu apenas as
+observações com valores ausentes na variável de interesse principal,
+``rendimento’’. O segundo conjunto de dados foi obtido através da
+remoção de todas as observações que continham qualquer valor ausente em
+qualquer uma das variáveis, resultando em um dataset com dados completos
+para todas as variáveis.</p>
+<p>Ao comparar os dois conjuntos de dados, observou-se que o primeiro
+dataset continha 9.151.107 observações, enquanto o segundo continha
+9.116.993 observações. A diferença entre os dois datasets foi
+considerada relativamente pequena, indicando que a aplicação do filtro
+mais abrangente não resultou em uma perda significativa de dados. Dado
+que o objetivo é maximizar a qualidade do modelo preditivo, optou-se por
+utilizar segundo dataset que assegura a integridade completa dos dados
+em todas as variáveis.</p>
 </div>
 <div id="download-do-dataframe" class="section level2">
 <h2>Download do dataframe</h2>
@@ -424,8 +446,7 @@ head(pop)</code></pre>
 <div id="apêndice" class="section level2">
 <h2>Apêndice</h2>
 <p>Dicionário de variáveis de população do censo:</p>
-<pre class="r"><code>data_dictionary(year = 2010, dataset = &quot;population&quot;)</code></pre>
-<pre><code>## NULL</code></pre>
+<pre class="r"><code># data_dictionary(year = 2010, dataset = &quot;population&quot;)</code></pre>
 </div>
 
 

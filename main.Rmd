@@ -26,14 +26,23 @@ O censobr é um pacote útil que facilita o acesso e a análise de dados do Cens
 Para a pesquisa, o ano utilizado será o de 2010. As variáveis de interesse e seus códigos são: 
 
 code_muni: código do município
+
 abbrev_state: estado
+
 V0002: codigo municipio
+
 V0601: sexo
+
 V6036: idade
+
 V0606: cor ou raça
+
 V6400: nível de instrução 
+
 V6525: rendimento em todos os trabalhos
+
 V6930: posição na ocupação e categoria do
+
 emprego no trabalho principal
 
 
@@ -49,19 +58,37 @@ pop <- read_population(
   showProgress = TRUE,  # show download progress bar
   cache = TRUE       # cache data for faster access later
   )
+
+# 20635472 obs
 ```
 
 
-Renomeando as variáveis e filtrando valores não nulos de rendimento total 
+Renomeando e filtrando apenas as observações com valores ausentes na variável de interesse principal, "rendimento"
+```{r renomeando e filtrando apenas as observações com valores ausentes na variável de interesse principal, "rendimento" , eval=FALSE}
+pop |>
+  rename(rendimento = V6525) |>
+  filter(!is.na(rendimento))
 
-```{r renomeando}
+ # 9.151.107 observações
+```
+
+Renomeando e removendo todas as observações que continham qualquer valor ausente em qualquer uma das variáveis
+
+```{r renomeando e removendo todas as observações que continham qualquer valor ausente em qualquer uma das variáveis}
 dados <- pop |> 
-  rename(sexo = V0002, idade = V6036, cor_raca = V0606, nivel_instrucao = V6400, 
+  rename(code_muni_censo = V0002, sexo = V0601, idade = V6036, cor_raca = V0606, nivel_instrucao = V6400, 
          rendimento = V6525, ocupacao_emprego = V6930) |> 
-  filter(rendimento != is.na(rendimento))
+  drop_na() |> 
+  as_tibble()
 
-head(pop)
+ # 9.116.993 observações
+
+head(dados)
 ```
+
+Dois conjuntos de dados foram gerados a partir do dataset original: o primeiro foi criado aplicando um filtro que removeu apenas as observações com valores ausentes na variável de interesse principal, ``rendimento''. O segundo conjunto de dados foi obtido através da remoção de todas as observações que continham qualquer valor ausente em qualquer uma das variáveis, resultando em um dataset com dados completos para todas as variáveis.
+
+Ao comparar os dois conjuntos de dados, observou-se que o primeiro dataset continha 9.151.107 observações, enquanto o segundo continha 9.116.993 observações. A diferença entre os dois datasets foi considerada relativamente pequena, indicando que a aplicação do filtro mais abrangente não resultou em uma perda significativa de dados. Dado que o objetivo é maximizar a qualidade do modelo preditivo, optou-se por utilizar segundo dataset que assegura a integridade completa dos dados em todas as variáveis.
 
 ## Download do dataframe
 
@@ -74,5 +101,5 @@ write_csv(dados, "dados/censo.csv")
 Dicionário de variáveis de população do censo: 
 
 ```{r dicionario - dados, }
-data_dictionary(year = 2010, dataset = "population")
+# data_dictionary(year = 2010, dataset = "population")
 ```
