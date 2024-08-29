@@ -9,7 +9,8 @@ dados <- read_delim("dados/censo.csv", delim = ",") |> select(-c(code_muni_censo
 #   mutate(rowIndex = row_number())
 
 # fazendo sample  
-dados <- sample_n(dados, size = 10000) 
+dados <- sample_n(dados, size = 10000) |> 
+  mutate(across(c(sexo, cor_raca,nivel_instrucao,ocupacao_emprego),~as.factor(.)))
 
 # usando lm()
 # lm(rendimento ~ idade + sexo + cor_raca + nivel_instrucao + ocupacao_emprego, data = dados) |> 
@@ -19,8 +20,7 @@ dados <- sample_n(dados, size = 10000)
 #   gtsave("tabelas/summary_lm.tex")
 
 # usando train()
-dados$sexo <- as.factor(dados$sexo)  # Certifique-se de que "Sexo" é uma variável categórica
-X <- dados |>  select(-c(rendimento,rowIndex))  # Remover a variável dependente
+X <- dados |>  select(-c(rendimento))  # Remover a variável dependente
 y <- dados$rendimento
 
 
@@ -29,15 +29,18 @@ train_control <- trainControl(method = "cv", number = 10, savePredictions = "all
 model <- train(
   x = X, 
   y = y,
-  method = "lm",
+  method = "cforest",
   trControl = train_control
 )
+
+
 # modelo
 linear_model <- model$finalModel
+
 # tabela regressores com train 
-tbl_regression(linear_model,pvalue_fun = label_style_pvalue(digits = 3)) |> 
-  as_gt() |>
-  gtsave("tabelas/summary_train.tex")
+# tbl_regression(linear_model,pvalue_fun = label_style_pvalue(digits = 3)) |> 
+#   as_gt() |>
+#   gtsave("tabelas/summary_train.tex")
 
 predictions <- model$pred
 predictions |> 
@@ -46,17 +49,20 @@ predictions |>
 
 # predicoes com dados originais
 previsoes_originais <- predict(linear_model, newdata = dados)
+# predictions <- predictions[order(predictions$rowIndex), ]
+
+dados_predicao <- dados |> 
+  mutate(predicao = previsoes_originais)
 
 # Aplicação da Função de Alternância
 # Alterar o sexo e gerar previsões com o modelo treinado
 
-dados_alteration <- dados |>  
+dados_alternation <- dados |>  
   mutate(sexo = ifelse(dados$sexo == "Masculino", "Feminino", "Masculino"))
 
 # treinando o modelo pros dados alternados
-dados_alteration$sexo <- as.factor(dados_alteration$sexo)  # Certifique-se de que "Sexo" é uma variável categórica
-X_alternation <- dados_alteration |>  select(-c(rendimento,rowIndex))  # Remover a variável dependente
-y_alternation <- dados_alteration$rendimento
+X_alternation <- dados_alternation |>  select(-c(rendimento))  # Remover a variável dependente
+y_alternation <- dados_alternation$rendimento
 
 model_alternation <- train(
   x = X_alternation, 
@@ -70,16 +76,15 @@ linear_model_alternation <- model_alternation$finalModel
 # predicoes com dados originais
 previsoes_alternation <- predict(linear_model_alternation, newdata = dados_alternation)
 
-
-previsoes_originais$predictions
-
-
+dados_alternation_predicao <- dados_alteration |> 
+  mutate(predicao = previsoes_alternation)
 
 
 
 
 
-
+teste <- dados |> 
+  mutate(pred1=previsoes_originais, pred2=previsoes_alternation)
 
 
 
