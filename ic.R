@@ -14,7 +14,7 @@ set.seed(42)
 dados <- read_delim("dados/censo.csv", delim = ",") |> select(-c(code_muni_censo,abbrev_state))
 
 # fazendo sample  pra modelar
-dados <- sample_n(dados, size = 10000) |> 
+dados <- sample_n(dados, size = 30000) |> 
   mutate(across(c(sexo, cor_raca,nivel_instrucao,ocupacao_emprego),~as.factor(.))) |> 
   select(sexo, rendimento, nivel_instrucao, idade, cor_raca, ocupacao_emprego)
 
@@ -29,7 +29,7 @@ trainControl <- trainControl(method = "cv", number = 10,
 rfModel <- train(rendimento ~ ., data = dados, method = "rf", 
                  trControl = trainControl, ntree=500)
 
-print(rfModel) #mtry = 3
+print(rfModel) #mtry = 3  novo =2
 
 # alternância das variáveis de interesse: homem->mulher; mulher->homem
 dados_alternation <- dados |> 
@@ -47,7 +47,7 @@ pred_alternations <- rfModel_alternation$pred
 
 # group_by predições por fold - homem dados originais
 homem_original <- pred_originals |>
-  filter(mtry ==3) |> 
+  filter(mtry ==2) |> 
   left_join(dados |> mutate(rowIndex = row_number()), join_by(rowIndex)) |> 
   group_by(Resample) |>
   filter(sexo == 'Masculino') |> 
@@ -65,7 +65,7 @@ homem_alternation <- pred_alternations |>
 
 # group_by predições por fold - mulher dados originais
 mulher_original <- pred_originals |>
-  filter(mtry ==3) |> 
+  filter(mtry ==2) |> 
   left_join(dados |> mutate(rowIndex = row_number()), join_by(rowIndex)) |> 
   group_by(Resample) |>
   filter(sexo == 'Feminino') |> 
@@ -111,7 +111,7 @@ ggsave("pred_homem.pdf", plot = plot_homem, width = 8, height = 6)
 
 # juntando predições com dado original e alternado
 todas_pred <- pred_originals |> 
-  filter(mtry==3) |>
+  filter(mtry==2) |>
   rename(pred_orig = pred, fold_orig= Resample, obs_orig = obs) |> 
   select(rowIndex, pred_orig, fold_orig, obs_orig) |> 
   left_join(pred_alternations |> filter(mtry ==2), join_by(rowIndex)) |> 
@@ -153,7 +153,7 @@ calculate_kl <- function(P, Q){
   # Combinar as distribuições em uma matriz
   kl_matrix <- rbind(P, Q)
   # Calcular a divergência KL
-  kl_value <- KL(kl_matrix, unit = 'log')
+  kl_value <- KL(kl_matrix, unit = 'log2')
   return(kl_value)}
 
 # KL - homem
@@ -212,18 +212,18 @@ kl_homem <- prob_results_homem |>
 
 print(kl_homem)
 
-plot_kl <- kl_homem |> 
+plot_kl <- kl_homem |>
   bind_rows(kl_mulher) |> 
   mutate(fold_num = as.numeric(gsub("Fold", "", fold_orig))) |> 
   ggplot(aes(x = fold_num |> as.numeric(), y = kl))+
   geom_line(aes(color =as.factor(bias))) +
   geom_point(aes(color =as.factor(bias))) +
   scale_x_continuous(labels = 1:10, breaks = 1:10) +
-  ylim(c(0,1.5)) +
+  ylim(c(0,1)) +
   labs(x = '10-Fold', y = 'Divergência KL', color = '')+
   theme_classic()
 
-ggsave("div_kl.pdf", plot = plot_kl, width = 8, height = 6)
+# ggsave("div_kl.pdf", plot = plot_kl, width = 8, height = 6)
 
 
 
