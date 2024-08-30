@@ -52,7 +52,7 @@ homem_original <- pred_originals |>
   group_by(Resample) |>
   filter(sexo == 'Masculino') |> 
   summarise(mean_prediction = mean(pred)) |> 
-  mutate(alterado = 'Homem')
+  mutate(alterado = 'Masculino')
 
 # group_by predições por fold - homem dados alternados
 homem_alternation <- pred_alternations |>
@@ -61,19 +61,7 @@ homem_alternation <- pred_alternations |>
   group_by(Resample) |>
   filter(sexo == 'Masculino') |> 
   summarise(mean_prediction = mean(pred)) |> 
-  mutate(alterado='Mulher->Homem')
-
-
-homem_original |> 
-  bind_rows(homem_alternation) |> 
-  ggplot(aes(x = as.factor(Resample) |> as.numeric(), y = mean_prediction))+
-  geom_line(aes(color =as.factor(alterado))) +
-  geom_point(aes(color =as.factor(alterado))) +
-  scale_x_continuous(labels = 1:10, breaks = 1:10) +
-  ylim(c(700,1200)) +
-  labs(x = '10-Fold', y = 'Média do salário', color = '')+
-# , title = 'Previsão média de renda por gênero')
-  theme_classic()
+  mutate(alterado='Feminino->Masculino')
 
 # group_by predições por fold - mulher dados originais
 mulher_original <- pred_originals |>
@@ -82,7 +70,7 @@ mulher_original <- pred_originals |>
   group_by(Resample) |>
   filter(sexo == 'Feminino') |> 
   summarise(mean_prediction = mean(pred)) |> 
-  mutate(alterado= 'Mulher')
+  mutate(alterado= 'Feminino')
 
 # group_by predições por fold - mulher dados alternados
 mulher_alternation <- pred_alternations |>
@@ -91,11 +79,11 @@ mulher_alternation <- pred_alternations |>
   group_by(Resample) |>
   filter(sexo == 'Feminino') |> 
   summarise(mean_prediction = mean(pred)) |> 
-  mutate(alterado = 'Homem->Mulher')
+  mutate(alterado = 'Masculino->Feminino')
 
-
-mulher_original |> 
-  bind_rows(mulher_alternation) |> 
+# ggplot mulheres
+plot_mulher <- mulher_original |> 
+  bind_rows(homem_alternation) |> 
   ggplot(aes(x = as.factor(Resample) |> as.numeric(), y = mean_prediction))+
   geom_line(aes(color =as.factor(alterado))) +
   geom_point(aes(color =as.factor(alterado))) +
@@ -104,295 +92,138 @@ mulher_original |>
   labs(x = '10-Fold', y = 'Média do salário', color = '')+
   theme_classic()
 # , title = 'Previsão média de renda por gênero')
-  
 
+ggsave("pred_mulher.pdf", plot = plot_mulher, width = 8, height = 6)
 
+# ggplot homens
+plot_homem <- homem_original |> 
+  bind_rows(mulher_alternation) |> 
+  ggplot(aes(x = as.factor(Resample) |> as.numeric(), y = mean_prediction))+
+  geom_line(aes(color =as.factor(alterado))) +
+  geom_point(aes(color =as.factor(alterado))) +
+  scale_x_continuous(labels = 1:10, breaks = 1:10) +
+  ylim(c(700,1200)) +
+  labs(x = '10-Fold', y = 'Média do salário', color = '')+
+  # , title = 'Previsão média de renda por gênero')
+  theme_classic()
 
+ggsave("pred_homem.pdf", plot = plot_homem, width = 8, height = 6)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# base com predições e genero original, genero alternado, pred original e pred alternada pra mtry == 2
-
-
-predicoes_teste <- 
-  testData |> 
-  select(sexo) |>
-  mutate(predi_orig = predictions, predi_alt = predictions_alternation)
-  
 # juntando predições com dado original e alternado
 todas_pred <- pred_originals |> 
-  filter(mtry==2) |>
+  filter(mtry==3) |>
   rename(pred_orig = pred, fold_orig= Resample, obs_orig = obs) |> 
   select(rowIndex, pred_orig, fold_orig, obs_orig) |> 
   left_join(pred_alternations |> filter(mtry ==2), join_by(rowIndex)) |> 
   rename(pred_alt = pred, obs_alt = obs, fold_alt = Resample) 
 
 # juntando predições com genero original e alternado
-resultados <- testData |>
+resultados <- dados |>
   rename(sexo_orig = sexo) |> 
   mutate(rowIndex = row_number()) |> 
   select(rowIndex, sexo_orig, rendimento) |> 
-  left_join(testData_alternation |> mutate(rowIndex = row_number()) |> select(sexo,  rowIndex), 
+  left_join(dados_alternation |> mutate(rowIndex = row_number()) |> select(sexo,  rowIndex), 
             join_by(rowIndex)) |> 
   left_join(todas_pred, join_by(rowIndex)) |> 
   rename(sexo_alt=sexo) 
 
-
-# ------------------------
-# densidade e KL
-
-# density_orig <- density(todas_pred$pred_orig)
-# density_alt <- density(todas_pred$pred_alt)
-# 
-# # Interpolando as densidades para os mesmos pontos
-# # interp_density_alt <- approx(density_alt$x, density_alt$y, xout = density_orig$x)$y
-# 
-# # Normalizando para obter distribuições de probabilidade discretas
-# prob_orig <- density_orig$y / sum(density_orig$y)
-# prob_alt <- density_alt$y / sum(density_alt$y)
-# 
-# # Calculando a divergência KL
-# kl_value <- KL.empirical(prob_orig, prob_alt)
-
-# density()), você precisa convertê-las em uma distribuição de probabilidade discreta que soma 1.
-
-
-# divergencia KL geral
-
-density_orig <- density(todas_pred$pred_orig)
-density_alt <- density(todas_pred$pred_alt)
-
-# Transformar as densidades em distribuições de probabilidade discretas
-P <- density_orig$y / sum(density_orig$y)
-Q <- density_alt$y / sum(density_alt$y)
-
-
-P <- todas_pred$pred_orig
-Q <- todas_pred$pred_alt
-
-#rbind distributions into one matrix
-x <- rbind(P,Q)
-
-#calculate KL divergence
-KL(x, unit='log')
-
-# # Compute KL divergence
-# kl_divergence <- KL(x, unit = "log")
-# 
-# print(kl_divergence)
-
-
 # -----------------
  # P DO ORIGINAL
+
+# funçoes  calcula Q
 calculate_prob_by_fold <- function(df) {
   # Calcular a densidade para pred_orig
   density_orig <- density(df$pred_orig)
-  
   # Normalizar para obter a distribuição de probabilidade P
   prob_orig <- density_orig$y / sum(density_orig$y)
-  
   # Retornar como data frame com P_fold
-  data.frame(P_fold = prob_orig)
-}
+  data.frame(P_fold = prob_orig)}
 
-# Aplicar a função para calcular P por fold e desaninhando os resultados
-prob_results <- todas_pred |> 
-  group_by(fold_orig) |> 
-  do(calculate_prob_by_fold(.)) |> 
-  ungroup() |> 
-
-# Visualizar os resultados
-print(prob_results)
-
-
- # Q DO ALTERNADO
+# função calcula Q
 calculate_prob_alt_by_fold <- function(df) {
   # Calcular a densidade para pred_alt
   density_alt <- density(df$pred_alt)
-  
   # Normalizar para obter a distribuição de probabilidade Q
   prob_alt <- density_alt$y / sum(density_alt$y)
-  
   # Retornar como data frame com Q_fold
-  data.frame(Q_fold = prob_alt)
-}
+  data.frame(Q_fold = prob_alt)}
 
-# Aplicar a função para calcular Q por fold e desaninhando os resultados
-prob_results_alt <- todas_pred |> 
-  group_by(fold_orig) |> 
-  do(calculate_prob_alt_by_fold(.)) |> 
-  ungroup()
-
-# Visualizar os resultados
-print(prob_results_alt)
-
-
-# div KL por fold
-
-folds_p_q <- prob_results |> 
-  mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row))
-
-prob_results |> 
-  mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row)) |> 
-  group_by(fold_orig.x) |> 
-  mutate(x = rbind(P_fold,Q_fold))
- 
-
-#calculate KL divergence
-# KL(x, unit='log')
-#   mutate(kl =  )
-#   
-
-# Função para calcular a divergência KL entre P e Q
-calculate_kl <- function(P, Q) {
+# função para calcular a divergência KL entre P e Q
+calculate_kl <- function(P, Q){
   # Combinar as distribuições em uma matriz
   kl_matrix <- rbind(P, Q)
-  
   # Calcular a divergência KL
   kl_value <- KL(kl_matrix, unit = 'log')
-  
-  return(kl_value)
-}
+  return(kl_value)}
 
-# Aplicar o cálculo da divergência KL por fold
-
-kl_geral <- prob_results |> 
-  mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row)) |> 
-  group_by(fold_orig.x) |> 
-  mutate(kl = calculate_kl(P_fold,Q_fold)) |> 
-  summarise(kl = mean(kl))
-  
-print(kl_geral)
-# 
-# library(ggplot2)
-# 
-# # Convertendo o nome dos folds para um formato numérico para o eixo x
-# kl_geral <- kl_geral %>%
-#   mutate(Fold = as.numeric(gsub("Fold", "", fold_orig.x)))
-# 
-# # Criando o gráfico
-# ggplot(kl_geral, aes(x = Fold, y = kl)) +
-#   geom_line(color = "red", linetype = "dashed", size = 1) +
-#   geom_point(color = "red", size = 3) +
-#   scale_x_continuous(breaks = 1:10) +
-#   scale_y_continuous(limits = c(0, 1.2), expand = c(0, 0)) +
-#   labs(title = "Bias Evaluation Using KL Divergence Male/Female",
-#        x = "10-fold",
-#        y = "KL Divergence") +
-#   theme_minimal() +
-#   theme(
-#     plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-#     axis.title = element_text(size = 12),
-#     axis.text = element_text(size = 10),
-#     panel.grid.major = element_line(color = "gray", linetype = "dotted"),
-#     panel.grid.minor = element_blank()
-#   )
-
-
-
-
-                 # MALE TO FEMALE
-
-# -----------------
-
+# KL - homem
 # Aplicar a função para calcular P por fold e desaninhando os resultados
-prob_results <- todas_pred |> 
+prob_results_homem <- resultados |> 
+  filter(sexo_orig == "Masculino") |> 
   group_by(fold_orig) |> 
   do(calculate_prob_by_fold(.)) |> 
-  ungroup() |> 
-  
-  # Visualizar os resultados
-  print(prob_results)
-
-
-# Q DO ALTERNADO
-calculate_prob_alt_by_fold <- function(df) {
-  # Calcular a densidade para pred_alt
-  density_alt <- density(df$pred_alt)
-  
-  # Normalizar para obter a distribuição de probabilidade Q
-  prob_alt <- density_alt$y / sum(density_alt$y)
-  
-  # Retornar como data frame com Q_fold
-  data.frame(Q_fold = prob_alt)
-}
+  ungroup() 
+print(prob_results_homem)
 
 # Aplicar a função para calcular Q por fold e desaninhando os resultados
-prob_results_alt <- todas_pred |> 
-  group_by(fold_orig) |> 
+prob_results_alt_homem <- resultados |>
+  filter(sexo_alt == "Masculino") |> 
+  group_by(fold_alt) |> 
   do(calculate_prob_alt_by_fold(.)) |> 
   ungroup()
+print(prob_results_alt_homem)
 
-# Visualizar os resultados
-print(prob_results_alt)
+# KL - mulher
+# Aplicar a função para calcular P por fold e desaninhando os resultados
+prob_results_mulher <- resultados |> 
+  filter(sexo_orig == "Feminino") |> 
+  group_by(fold_orig) |> 
+  do(calculate_prob_by_fold(.)) |> 
+  ungroup() 
+print(prob_results_mulher)
 
+# Aplicar a função para calcular Q por fold e desaninhando os resultados
+prob_results_alt_mulher <- resultados |>
+  filter(sexo_alt == "Feminino") |> 
+  group_by(fold_alt) |> 
+  do(calculate_prob_alt_by_fold(.)) |> 
+  ungroup()
+print(prob_results_alt_mulher)
 
-# div KL por fold
-
-folds_p_q <- prob_results |> 
+# Aplicar o cálculo da divergência KL por fold pra homem
+kl_mulher <- prob_results_mulher |> 
   mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row))
-
-prob_results |> 
-  mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row)) |> 
-  group_by(fold_orig.x) |> 
-  mutate(x = rbind(P_fold,Q_fold))
-
-
-#calculate KL divergence
-# KL(x, unit='log')
-#   mutate(kl =  )
-#   
-
-# Função para calcular a divergência KL entre P e Q
-calculate_kl <- function(P, Q) {
-  # Combinar as distribuições em uma matriz
-  kl_matrix <- rbind(P, Q)
-  
-  # Calcular a divergência KL
-  kl_value <- KL(kl_matrix, unit = 'log')
-  
-  return(kl_value)
-}
-
-# Aplicar o cálculo da divergência KL por fold
-
-kl_geral <- prob_results |> 
-  mutate(row=row_number()) |> 
-  left_join(prob_results_alt |> mutate(row=row_number()), join_by(row)) |> 
-  group_by(fold_orig.x) |> 
+  left_join(prob_results_alt_homem |> mutate(row=row_number()), join_by(row)) |> 
+  group_by(fold_orig) |> 
   mutate(kl = calculate_kl(P_fold,Q_fold)) |> 
-  summarise(kl = mean(kl))
+  summarise(kl = mean(kl)) |> 
+  mutate(bias = "Viés com Feminino")
 
-print(kl_geral)
+print(kl_mulher)
 
+# Aplicar o cálculo da divergência KL por fold pra homem
+kl_homem <- prob_results_homem |> 
+  mutate(row=row_number()) |> 
+  left_join(prob_results_alt_mulher |> mutate(row=row_number()), join_by(row)) |> 
+  group_by(fold_orig) |> 
+  mutate(kl = calculate_kl(P_fold,Q_fold)) |> 
+  summarise(kl = mean(kl)) |> 
+  mutate(bias = "Viés com Masculino")
 
+print(kl_homem)
 
+plot_kl <- kl_homem |> 
+  bind_rows(kl_mulher) |> 
+  mutate(fold_num = as.numeric(gsub("Fold", "", fold_orig))) |> 
+  ggplot(aes(x = fold_num |> as.numeric(), y = kl))+
+  geom_line(aes(color =as.factor(bias))) +
+  geom_point(aes(color =as.factor(bias))) +
+  scale_x_continuous(labels = 1:10, breaks = 1:10) +
+  ylim(c(0,1.5)) +
+  labs(x = '10-Fold', y = 'Divergência KL', color = '')+
+  theme_classic()
 
-
-
-
-
-
+ggsave("div_kl.pdf", plot = plot_kl, width = 8, height = 6)
 
 
 
