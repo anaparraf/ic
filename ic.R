@@ -90,7 +90,12 @@ plot_mulher <- mulher_original |>
   scale_x_continuous(labels = 1:10, breaks = 1:10) +
   ylim(c(700,1200)) +
   labs(x = '10-Fold', y = 'Média do salário', color = '')+
-  theme_classic()
+  theme_classic()+
+  theme(
+    text = element_text(size = 12),          # Aumenta o texto geral
+    legend.text = element_text(size = 12),   # Aumenta o texto da legenda
+    axis.title = element_text(size = 12)     # Aumenta o texto dos títulos dos eixos
+  )
 # , title = 'Previsão média de renda por gênero')
 
 ggsave("pred_mulher.pdf", plot = plot_mulher, width = 8, height = 6)
@@ -105,7 +110,12 @@ plot_homem <- homem_original |>
   ylim(c(700,1200)) +
   labs(x = '10-Fold', y = 'Média do salário', color = '')+
   # , title = 'Previsão média de renda por gênero')
-  theme_classic()
+  theme_classic()+
+  theme(
+    text = element_text(size = 12),          # Aumenta o texto geral
+    legend.text = element_text(size = 12),   # Aumenta o texto da legenda
+    axis.title = element_text(size = 12)     # Aumenta o texto dos títulos dos eixos
+  )
 
 ggsave("pred_homem.pdf", plot = plot_homem, width = 8, height = 6)
 
@@ -221,9 +231,21 @@ plot_kl <- kl_homem |>
   scale_x_continuous(labels = 1:10, breaks = 1:10) +
   ylim(c(0,1)) +
   labs(x = '10-Fold', y = 'Divergência KL', color = '')+
-  theme_classic()
+  theme_classic()+
+  theme(
+  text = element_text(size = 12),          # Aumenta o texto geral
+  legend.text = element_text(size = 12),   # Aumenta o texto da legenda
+  axis.title = element_text(size = 12)     # Aumenta o texto dos títulos dos eixos
+)
 
-# ggsave("div_kl.pdf", plot = plot_kl, width = 8, height = 6)
+ggsave("div_kl.pdf", plot = plot_kl, width = 8, height = 6)
+
+# regressao linear
+lm(rendimento ~ idade + sexo + cor_raca + nivel_instrucao + ocupacao_emprego, data = dados) |> 
+  # summary() |> 
+  tbl_regression(pvalue_fun = label_style_pvalue(digits = 3)) |>
+  as_gt() |> 
+  gtsave("tabelas/linear_regression.tex")
 
 
 
